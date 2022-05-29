@@ -1,3 +1,4 @@
+import csv
 import re
 import json
 import pandas as pd
@@ -6,7 +7,16 @@ from urllib.error import HTTPError
 
 from sqlalchemy import create_engine
 
-from config import MY_SQL_DATABASE_URI, test_pub_size
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+
+from webdriver_manager.chrome import ChromeDriverManager
+
+from config import MY_SQL_DATABASE_URI, test_pub_size, CSV_PATH, options
+
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 
 class NaverSearch:
@@ -60,7 +70,6 @@ df_column = [
     "image",
     "link"
 ]
-
 
 prod_pubs = [
     "위즈덤하우스",
@@ -130,3 +139,38 @@ def save_to_db(df):
     conn.close()
 
     return _df
+
+
+def get_book_info(df_loc):
+    i, end, row = df_loc
+    if 'link' not in row:
+        return
+
+    global driver
+    try:
+        target_url = row['link']
+        driver.get(target_url)
+    except WebDriverException:
+        print(' - exception [ {} / {} ] : {}'.format(i, end, row['title']))
+        return
+
+    try:
+        full_description = driver.find_element(by=By.ID, value="bookIntroContent")
+        row['description'] = full_description.text
+    except NoSuchElementException:
+        pass
+
+    try:
+        pub_review = driver.find_element(by=By.ID, value="pubReviewContent")
+        row['pub_review'] = pub_review.text
+    except NoSuchElementException:
+        pass
+
+    try:
+        detail = driver.find_element(by=By.CSS_SELECTOR, value="#content > div:nth-child(7) > p:nth-child(2)")
+        row['detail'] = detail.text
+    except NoSuchElementException:
+        pass
+
+    print(' * crawling [ {} / {} ] : {}'.format(i, end, row['title']))
+    return row

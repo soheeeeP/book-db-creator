@@ -1,6 +1,10 @@
 import json
 import os
+
 import csv
+import time
+
+from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
@@ -11,9 +15,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from flask import Flask, make_response
 import pandas as pd
+from threading import Thread
 
 from config import api_request_url, API_CLIENT_ID, API_CLIENT_SECRET, CSV_PATH, CSV_FILE_NAME, RUN_MODE, options
-from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe, df_column
+from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe, df_column, get_book_info
 
 app = Flask(__name__)
 
@@ -83,78 +88,45 @@ def scribble_book_saver():
     return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
 
-# TODO: exception을 catch하여 일단 저장 / Thread 사용
 @app.route('/crawl', methods=['GET'])
 def scribble_book_crawler():
     try:
         csv_path = os.path.join(CSV_PATH, CSV_FILE_NAME)
-        df = pd.read_csv(csv_path, encoding='utf-8')
+        df = pd.read_csv(csv_path, encoding='utf-8', on_bad_lines='skip')
 
-        # 임시 csv 파일 생성
         new_csv_name = "new_" + CSV_FILE_NAME
         new_csv_path = os.path.join(CSV_PATH, new_csv_name)
-
         _df_column = df_column + ['pub_review', 'detail']
+
         new_df = pd.DataFrame(columns=_df_column)
         new_df.drop(df.filter(regex="Unnamed"), axis=1, inplace=True)
         new_df.to_csv(new_csv_path, encoding='utf-8', index=False, columns=_df_column)
+
     except FileNotFoundError as e:
         response = {'error': '{} does not exist'.format(e.filename)}
         return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-    size = df.shape[0]
     start, stop, step = df.index.start, df.index.stop, df.index.step
-    temp_idx = start
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     print('Start crawling detail information ... ')
-    for i in range(start, stop, step):
-        if i > 0 and i % 100 == 0:
-            rows = df.loc[temp_idx:i].values.tolist()
-            with open(new_csv_path, 'a') as f_obj:
-                writer_obj = csv.writer(f_obj)
-                writer_obj.writerows(rows)
-                f_obj.close()
-            temp_idx = i
+    s_time = time.time()
+    for i in range(start, stop, 100):
+        links = [(i, stop, df.loc[i]) for i in range(i, i + 100, step)]
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            results = executor.map(get_book_info, links)
 
-        try:
-            target_url = df.loc[i, 'link']
-            driver.get(target_url)
-        except WebDriverException:
-            print(' - exception [ {} / {} ] : {}'.format(i, stop, df.loc[i, 'title']))
-            continue
+        df_list = [i.to_list() for i in results if i]
+        with open(new_csv_path, 'a') as f_obj:
+            writer_obj = csv.writer(f_obj)
+            writer_obj.writerows(df_list)
+            f_obj.close()
 
-        try:
-            full_description = driver.find_element(by=By.ID, value="bookIntroContent")
-            df.loc[i, 'description'] = full_description.text
-        except NoSuchElementException:
-            pass
+        print('Crawling [ {} ~ {} ] Finished in {}.'.format(i, i + 100, time.time() - s_time))
 
-        try:
-            pub_review = driver.find_element(by=By.ID, value="pubReviewContent")
-            df.loc[i, 'pub_review'] = pub_review.text
-        except NoSuchElementException:
-            pass
-
-        try:
-            detail = driver.find_element(by=By.CSS_SELECTOR, value="#content > div:nth-child(7) > p:nth-child(2)")
-            df.loc[i, 'detail'] = detail.text
-        except NoSuchElementException:
-            pass
-
-        print(' * crawling [ {} / {} ] : {}'.format(i, stop, df.loc[i, 'title']))
     print('Crawling Finished.')
+    print('{} file successfully created at {}'.format(new_csv_name, new_csv_path))
 
-    temp_idx = stop % 100
-    rows = df.loc[temp_idx:stop].values.tolist()
-    with open(new_csv_path, 'a') as f_obj:
-        writer_obj = csv.writer(f_obj)
-        writer_obj.writerows(rows)
-        f_obj.close()
-
-    print('{} file successfully created at {}'.format(new_csv_name, CSV_PATH))
-    return make_response(json.dumps({'success': size}, ensure_ascii=False).encode('utf-8'))
+    return make_response(json.dumps({'success': df.shape[0]}, ensure_ascii=False).encode('utf-8'))
 
 
 if __name__ == '__main__':
