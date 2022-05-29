@@ -4,18 +4,10 @@ import os
 import csv
 import time
 
-from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED
-
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-
-from webdriver_manager.chrome import ChromeDriverManager
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, make_response
 import pandas as pd
-from threading import Thread
 
 from config import api_request_url, API_CLIENT_ID, API_CLIENT_SECRET, CSV_PATH, CSV_FILE_NAME, RUN_MODE, options
 from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe, df_column, get_book_info
@@ -93,10 +85,15 @@ def scribble_book_crawler():
     try:
         csv_path = os.path.join(CSV_PATH, CSV_FILE_NAME)
         df = pd.read_csv(csv_path, encoding='utf-8', on_bad_lines='skip')
+        df['pub_review'] = ''
+        df['detail'] = ''
+        df['category_d1'] = ''
+        df['category_d2'] = ''
+        df['category_d3'] = ''
 
         new_csv_name = "new_" + CSV_FILE_NAME
         new_csv_path = os.path.join(CSV_PATH, new_csv_name)
-        _df_column = df_column + ['pub_review', 'detail']
+        _df_column = df_column + ['pub_review', 'detail', 'category_d1', 'category_d2', 'category_d3']
 
         new_df = pd.DataFrame(columns=_df_column)
         new_df.drop(df.filter(regex="Unnamed"), axis=1, inplace=True)

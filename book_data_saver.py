@@ -167,10 +167,25 @@ def get_book_info(df_loc):
         pass
 
     try:
-        detail = driver.find_element(by=By.CSS_SELECTOR, value="#content > div:nth-child(7) > p:nth-child(2)")
+        detail = driver.find_element(by=By.XPATH, value="//*[@id='content']/div[6]/p[1]")
         row['detail'] = detail.text
     except NoSuchElementException:
         pass
+
+    try:
+        row['category_d1'] = driver.find_element(by=By.XPATH, value="//*[@id='category_location1_depth']").text
+    except NoSuchElementException:
+        row['category_d1'] = ''
+
+    try:
+        row['category_d2'] = driver.find_element(by=By.XPATH, value="//*[@id='category_location2_depth']").text
+    except NoSuchElementException:
+        row['category_d2'] = ''
+
+    try:
+        row['category_d3'] = driver.find_element(by=By.XPATH, value="//*[@id='category_location3_depth']").text
+    except NoSuchElementException:
+        row['category_d3'] = ''
 
     print(' * crawling [ {} / {} ] : {}'.format(i, end, row['title']))
     return row
