@@ -6,7 +6,7 @@ from urllib.error import HTTPError
 
 from sqlalchemy import create_engine
 
-from config import MY_SQL_DATABASE_URI
+from config import MY_SQL_DATABASE_URI, test_pub_size
 
 
 class NaverSearch:
@@ -93,7 +93,7 @@ prod_pubs = [
     "개암나무"
 ]
 
-test_pubs = prod_pubs[:3]
+test_pubs = prod_pubs[:test_pub_size]
 
 
 def preprocessor(df):
