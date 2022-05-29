@@ -3,7 +3,7 @@ import os
 from flask import Flask, make_response
 import pandas as pd
 
-from config import api_request_url, API_CLIENT_ID, API_CLIENT_SECRET, CSV_PATH, RUN_MODE
+from config import api_request_url, API_CLIENT_ID, API_CLIENT_SECRET, CSV_PATH, CSV_FILE_NAME, RUN_MODE, options
 from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe
 
 app = Flask(__name__)
@@ -12,6 +12,19 @@ app = Flask(__name__)
 @app.route('/save', methods=['GET'])
 def scribble_book_saver():
     pubs = prod_pubs if RUN_MODE == 'prod' else test_pubs
+
+    created_csv_name = CSV_FILE_NAME
+    csv_path = os.path.join(CSV_PATH, created_csv_name)
+    try:
+        pd.read_csv(csv_path, encoding='utf-8')
+        response = {
+            'warning': '{} already exists.'.format(created_csv_name),
+            'message': 'If you want to refresh your .csv file, send the request back to the server.'.format(
+                created_csv_name)
+        }
+        return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+    except FileNotFoundError as e:
+        pass
 
     df_list = []
     response = {pub: 0 for pub in pubs}
