@@ -58,9 +58,7 @@ df_column = [
     "isbn",
     "description",
     "image",
-    "link",
-    # "review",   # 출판사 서평
-    # "contents"  # 목차
+    "link"
 ]
 
 
