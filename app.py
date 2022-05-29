@@ -18,6 +18,12 @@ from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe
 app = Flask(__name__)
 
 
+@app.route('/', methods=['GET'])
+def main():
+    # TODO: tutorial readme
+    return make_response()
+
+
 @app.route('/save', methods=['GET'])
 def scribble_book_saver():
     pubs = prod_pubs if RUN_MODE == 'prod' else test_pubs
