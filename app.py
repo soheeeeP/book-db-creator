@@ -93,7 +93,6 @@ def scribble_book_crawler():
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     start, stop, step = df.index.start, df.index.stop, df.index.step
-    stop = 2
     print('Start crawling detail information ... ')
     for i in range(start, stop, step):
         target_url = df.loc[i]['link']
