@@ -10,7 +10,8 @@ from flask import Flask, make_response
 import pandas as pd
 
 from config import api_request_url, API_CLIENT_ID, API_CLIENT_SECRET, CSV_PATH, CSV_FILE_NAME, RUN_MODE, options
-from book_data_saver import NaverSearch, prod_pubs, test_pubs, dict_to_dataframe, df_column, get_book_info
+from book_data_saver import *
+
 
 app = Flask(__name__)
 
@@ -106,18 +107,19 @@ def scribble_book_crawler():
     start, stop, step = df.index.start, df.index.stop, df.index.step
 
     print('Start crawling detail information ... ')
-    s_time = time.time()
-    for i in range(start, stop, 100):
-        links = [(i, stop, df.loc[i]) for i in range(i, i + 100, step)]
-        with ThreadPoolExecutor(max_workers=32) as executor:
-            results = executor.map(get_book_info, links)
 
-        df_list = [i.to_list() for i in results if i]
+    for i in range(start, stop, 100):
+        s_time = time.time()
+        links = [(i, stop, df.loc[i]) for i in range(i, i + 100, step)]
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            # results = executor.map(get_book_info_using_selenium, links)
+            results = executor.map(get_book_info_using_request, links)
+
+        df_list = [i.values.tolist() for i in results]
         with open(new_csv_path, 'a') as f_obj:
             writer_obj = csv.writer(f_obj)
             writer_obj.writerows(df_list)
             f_obj.close()
-
         print('Crawling [ {} ~ {} ] Finished in {}.'.format(i, i + 100, time.time() - s_time))
 
     print('Crawling Finished.')

@@ -7,6 +7,9 @@ from urllib.error import HTTPError
 
 from sqlalchemy import create_engine
 
+import requests
+from bs4 import BeautifulSoup
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.chrome.service import Service
@@ -141,7 +144,7 @@ def save_to_db(df):
     return _df
 
 
-def get_book_info(df_loc):
+def get_book_info_using_selenium(df_loc):
     i, end, row = df_loc
     if 'link' not in row:
         return
@@ -186,6 +189,40 @@ def get_book_info(df_loc):
         row['category_d3'] = driver.find_element(by=By.XPATH, value="//*[@id='category_location3_depth']").text
     except NoSuchElementException:
         row['category_d3'] = ''
+
+    print(' * crawling [ {} / {} ] : {}'.format(i, end, row['title']))
+    return row
+
+
+def get_book_info_using_request(df_loc):
+    i, end, row = df_loc
+    if 'link' not in row:
+        return
+
+    response = requests.get(row['link'])
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    full_description = soup.find(attrs={"id": "bookIntroContent"})
+    if full_description:
+        row['description'] = full_description.p.text
+
+    pub_review = soup.find(attrs={"id": "pubReviewContent"})
+    if pub_review:
+        row['pub_review'] = pub_review.p.text
+
+    detail = soup.select_one("#content > div:nth-child(7) > p:nth-child(2)")
+    if detail:
+        row['detail'] = detail.text
+
+    category_d1 = soup.find(attrs={"id": "category_location1_depth"})
+    if category_d1:
+        row['category_d1'] = category_d1.text
+    category_d2 = soup.find(attrs={"id": "category_location2_depth"})
+    if category_d2:
+        row['category_d2'] = category_d2.text
+    category_d3 = soup.find(attrs={"id": "category_location3_depth"})
+    if category_d3:
+        row['category_d3'] = category_d3.text
 
     print(' * crawling [ {} / {} ] : {}'.format(i, end, row['title']))
     return row
