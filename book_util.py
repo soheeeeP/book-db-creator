@@ -1,6 +1,8 @@
 import csv
 import re
 import json
+from concurrent.futures.thread import ThreadPoolExecutor
+
 import pandas as pd
 from urllib import request, parse
 from urllib.error import HTTPError
@@ -17,7 +19,8 @@ from selenium.webdriver.common.by import By
 
 from webdriver_manager.chrome import ChromeDriverManager
 
-from config import MY_SQL_DATABASE_URI, test_pub_size, CSV_PATH, options
+from config import *
+from processor import dict_to_dataframe
 
 
 class NaverSearch:
@@ -106,33 +109,6 @@ prod_pubs = [
 test_pubs = prod_pubs[:test_pub_size]
 
 
-def preprocessor(df):
-    reg_ex = '<.+?>'
-
-    df.loc[:, 'title'] = df['title'].map(lambda x: re.sub(reg_ex, '', x))
-    df.loc[:, 'author'] = df['author'].map(lambda x: re.sub(reg_ex, '', x))
-    df.loc[:, 'publisher'] = df['publisher'].map(lambda x: re.sub(reg_ex, '', x))
-    df.loc[:, 'description'] = df['description'].map(lambda x: re.sub(reg_ex, '', x))
-
-    df.loc[:, 'image'] = df['image'].map(lambda x: re.sub(reg_ex, '', x).rsplit('?', 1)[0])
-    df.loc[:, 'isbn'] = df['isbn'].map(lambda x: re.sub(reg_ex, '', x).rsplit(' ', 1)[1])
-
-    return df
-
-
-def dict_to_dataframe(items):
-    books = []
-    for item in items:
-        if item['isbn'] == '':
-            continue
-        books.append([item[col] for col in df_column])
-
-    df = pd.DataFrame(books, columns=df_column)
-    df.dropna(axis=0, how='any', inplace=True)
-
-    return preprocessor(df)
-
-
 def save_to_db(df):
     engine = create_engine(MY_SQL_DATABASE_URI, encoding='utf-8')
     conn = engine.connect()
@@ -144,12 +120,74 @@ def save_to_db(df):
     return _df
 
 
+def get_csv_file(pub):
+    file_name = pub + CSV_FILE_NAME
+    file_path = os.path.join(CSV_PATH, file_name)
+    return True if os.path.isfile(file_path) else False
+
+
+def search_book_by_publisher(pub):
+    print('Search books using publisher "{}" as a query parameter ...'.format(pub))
+    api = NaverSearch(
+        client_id=API_CLIENT_ID,
+        client_secret=API_CLIENT_SECRET,
+        url=api_request_url,
+        key="d_publ"
+    )
+    offset, total, items = 1, 1, []
+    while offset <= total:
+        result = api(pub)
+        print(' * crawling [ {} / {} ] ... '.format(offset, total))
+        offset, total = result['offset'], result['data']['total']
+        items += result['data']['items']
+
+    print('Convert dict to dataframe ...')
+    df = dict_to_dataframe(items)
+    pub_dict = {pub: df.shape[0]}
+    print('Converting Finished.')
+
+    print('Save dataframe to csv file ...')
+    file_path = os.path.join(CSV_PATH, pub + CSV_FILE_NAME)
+    df.to_csv(file_path, encoding='utf-8', index=False)
+    print('{} Created.'.format(pub + CSV_FILE_NAME))
+
+    return pub_dict
+
+
+def crawl_book_detail_info(file_path, temp_path):
+    df = pd.read_csv(file_path, encoding='utf-8', on_bad_lines='skip')
+    df['pub_review'], df['detail'], df['category_d1'], df['category_d2'], df['category_d3'] = '', '', '', '', ''
+
+    temp_df = pd.DataFrame(columns=crawl_df_column)
+    temp_df.drop(df.filter(regex='Unnamed'), axis=1, inplace=True)
+    temp_df.to_csv(temp_path, encoding='utf-8', index=False, columns=crawl_df_column)
+
+    print('Start crawling detail information ... ')
+    start, stop, step = df.index.start, df.index.stop, df.index.step
+    total_df = []
+    for i in range(start, stop, 100):
+        links = [(i, stop, df.loc[i]) for i in range(i, i + 100, step)]
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            results = executor.map(get_book_info_using_request, links)
+
+        df_list = [i.values.tolist() for i in results]
+        total_df.extend(df_list)
+        with open(temp_path, 'a') as f_obj:
+            writer = csv.writer(f_obj)
+            writer.writerows(df_list)
+            f_obj.close()
+        print('Crawling [ {} ~ {} ] Finished.'.format(i, i + 100))
+
+    return total_df
+
+
 def get_book_info_using_selenium(df_loc):
     i, end, row = df_loc
     if 'link' not in row:
         return
 
     global driver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     try:
         target_url = row['link']
         driver.get(target_url)
