@@ -19,8 +19,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from config import MY_SQL_DATABASE_URI, test_pub_size, CSV_PATH, options
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
 
 class NaverSearch:
     offset = 1
@@ -73,6 +71,8 @@ df_column = [
     "image",
     "link"
 ]
+
+crawl_df_column = df_column + ['pub_review', 'detail', 'category_d1', 'category_d2', 'category_d3']
 
 prod_pubs = [
     "위즈덤하우스",
@@ -136,9 +136,9 @@ def dict_to_dataframe(items):
 def save_to_db(df):
     engine = create_engine(MY_SQL_DATABASE_URI, encoding='utf-8')
     conn = engine.connect()
-    df.to_sql('book_t', conn)
-    _df = pd.read_sql('SELECT * FROM book_t', conn)
-    _df.to_sql(name='book', if_exists='replace', con=engine, index=True, index_label='isbn')
+    df.to_sql('book_temp', conn)
+    _df = pd.read_sql('SELECT * FROM book_temp', conn)
+    _df.to_sql(name='book', if_exists='append', con=engine, index=False)
     conn.close()
 
     return _df
