@@ -1,6 +1,16 @@
 import re
 import pandas as pd
-from book_util import df_column
+
+
+df_column = [
+    "title",
+    "author",
+    "publisher",
+    "isbn",
+    "description",
+    "image",
+    "link"
+]
 
 
 def preprocessor(df):

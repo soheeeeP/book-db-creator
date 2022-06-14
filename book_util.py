@@ -20,7 +20,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 from config import *
-from processor import dict_to_dataframe
+from processor import dict_to_dataframe, df_column
 
 
 class NaverSearch:
@@ -65,16 +65,6 @@ class NaverSearch:
         return data
 
 
-df_column = [
-    "title",
-    "author",
-    "publisher",
-    "isbn",
-    "description",
-    "image",
-    "link"
-]
-
 crawl_df_column = df_column + ['pub_review', 'detail', 'category_d1', 'category_d2', 'category_d3']
 
 prod_pubs = [
@@ -110,14 +100,16 @@ test_pubs = prod_pubs[:test_pub_size]
 
 
 def save_to_db(df):
+    # df.to_sql('book_temp', conn)
+    # _df = pd.read_sql('SELECT * FROM book_temp', conn)
+    # _df.to_sql(name='book', if_exists='append', con=engine, index=False)
+
     engine = create_engine(MY_SQL_DATABASE_URI, encoding='utf-8')
     conn = engine.connect()
-    df.to_sql('book_temp', conn)
-    _df = pd.read_sql('SELECT * FROM book_temp', conn)
-    _df.to_sql(name='book', if_exists='append', con=engine, index=False)
+    df.to_sql(name='book', if_exists='append', con=engine, index=False)
     conn.close()
 
-    return _df
+    return df
 
 
 def get_csv_file(pub):
