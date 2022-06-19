@@ -112,9 +112,9 @@ def save_to_db(df):
     return df
 
 
-def get_csv_file(pub):
-    file_name = pub + CSV_FILE_NAME
-    file_path = os.path.join(CSV_PATH, file_name)
+def get_csv_file(dir_name, pub):
+    file_name = pub + CSV_FILE_EXT
+    file_path = os.path.join(CSV_PATH, dir_name, file_name)
     return True if os.path.isfile(file_path) else False
 
 
@@ -139,9 +139,9 @@ def search_book_by_publisher(pub):
     print('Converting Finished.')
 
     print('Save dataframe to csv file ...')
-    file_path = os.path.join(CSV_PATH, pub + CSV_FILE_NAME)
+    file_path = os.path.join(CSV_PATH, 'search', pub + CSV_FILE_EXT)
     df.to_csv(file_path, encoding='utf-8', index=False)
-    print('{} Created.'.format(pub + CSV_FILE_NAME))
+    print('{} Created.'.format(pub + CSV_FILE_EXT))
 
     return pub_dict
 

@@ -31,13 +31,13 @@ def search_book():
         }
         return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-    if get_csv_file(pub):
-        response = {'warning': '{} already exists.'.format(pub + CSV_FILE_NAME)}
+    if get_csv_file('search', pub):
+        response = {'warning': '{} already exists.'.format(pub + CSV_FILE_EXT)}
         return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
     response = search_book_by_publisher(pub)
 
-    readme_path = os.path.join(CSV_PATH, "download.txt")
+    readme_path = os.path.join(CSV_PATH, "result.txt")
     with open(readme_path, 'a') as f_obj:
         writer = csv.writer(f_obj)
         writer.writerow(['{}:{}'.format(pub, response[pub])])
@@ -59,12 +59,12 @@ def save_book():
         }
         return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-    pub_path = os.path.join(CSV_PATH, pub + CSV_FILE_NAME)
+    pub_path = os.path.join(CSV_PATH, "search", pub + CSV_FILE_EXT)
     if os.path.isfile(pub_path) is False:
         response = {'warning': '{}.csv does not exist.'.format(pub)}
         return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-    temp_path = os.path.join(CSV_PATH, "temp_" + pub + CSV_FILE_NAME)
+    temp_path = os.path.join(CSV_PATH, "save", pub + CSV_FILE_EXT)
     df = crawl_book_detail_info(pub_path, temp_path)
     if df:
         print('Save dataframe in MYSQL database ...')
@@ -76,15 +76,16 @@ def save_book():
 
 @app.route('/save/all', methods=['GET'])
 def save_all_book():
-    readme_path = os.path.join(CSV_PATH, "download.txt")
+    readme_path = os.path.join(CSV_PATH, "result.txt")
     with open(readme_path, "r") as f_obj:
         lines = f_obj.read().splitlines()
 
-    pubs = [l.rsplit(':', 1)[0] for l in lines]
-    response = {pub: 0 for pub in pubs}
-    for pub in pubs:
-        pub_path = os.path.join(CSV_PATH, pub + CSV_FILE_NAME)
-        temp_path = os.path.join(CSV_PATH, "temp_" + pub + CSV_FILE_NAME)
+    pubs = {l.rsplit(':', 1)[0]: l.rsplit(':', 1)[1] for l in lines}
+    response = {}
+    # save_pubs = []
+    for pub in pubs.copy().keys():
+        pub_path = os.path.join(CSV_PATH, "search", pub + CSV_FILE_EXT)
+        temp_path = os.path.join(CSV_PATH, "save", pub + CSV_FILE_EXT)
         df_list = crawl_book_detail_info(pub_path, temp_path)
         if df_list:
             print('Save dataframe in MYSQL database ...')
@@ -92,6 +93,18 @@ def save_all_book():
             save_to_db(df)
             print('Save to DB.')
             response[pub] = len(df)
+            del pubs[pub]
+
+    with open(readme_path, "w") as f_obj:
+        for k, v in pubs.items():
+            f_obj.write('{}:{}\n'.format(k, v))
+        f_obj.close()
+
+    save_path = os.path.join(CSV_PATH, "save.txt")
+    with open(save_path, "w") as f_obj:
+        for k, v in response.items():
+            f_obj.write('{}:{}\n'.format(k, v))
+        f_obj.close()
 
     return make_response(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
