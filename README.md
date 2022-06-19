@@ -41,7 +41,7 @@ CSV_FILE_EXT = '.csv'
 
 ## 2. 도서 정보 csv로 저장하기
 **[GET] /search**
-> query parameter로 전달한 출판사의 도서목록을 저장한 csv 파일을 data/search/ 에 생성한다
+> query parameter로 전달한 출판사의 도서목록을 저장한 csv 파일을 `data/search/` 에 생성한다
 ``` commandline
 /search?publisher={출판사명}
 ```
@@ -89,7 +89,7 @@ CSV_FILE_EXT = '.csv'
 ## 3. 도서 세부 정보(category, detail) 데이터베이스에 저장하기
 **[GET] /save**
 > query parameter로 전달한 출판사의 도서목록을 저장한 csv 파일을 읽어
-> 세부 정보를 담은 새로운 csv 파일을 data/save/에 생성하고 데이터베이스에 저장한다.
+> 세부 정보를 담은 새로운 csv 파일을 `data/save/`에 생성하고 데이터베이스에 저장한다.
 ``` commandline
 /save?publisher={출판사명}
 ```
@@ -132,8 +132,8 @@ CSV_FILE_EXT = '.csv'
 ```
 
 **[GET] /save/all**
-> data/search/에 존재하는 모든 출판사 도서목록 csv 파일에 대한 세부정보를 크롤링하여
-> 새로운 csv 파일을 data/save/에 생성하고 데이터베이스에 저장한다.
+> `data/search/`에 존재하는 모든 출판사 도서목록 csv 파일에 대한 세부정보를 크롤링하여
+> 새로운 csv 파일을 `data/save/`에 생성하고 데이터베이스에 저장한다.
 ``` commandline
 /save/all
 ```
