@@ -1,9 +1,22 @@
-## Book DB Creator
+# Book DB Creator
 출판사 정보로 도서 데이터베이스를 구축하는 프로그램입니다.
 
-### 0. 프로젝트 구조
+&nbsp;
+## 0. 프로젝트 구조
+``` shell
+.
+├── README.md
+├── app.py
+├── book_util.py
+├── config.py
+├── data/
+│   ├── result.txt
+│   ├── save/
+│   └── search/
+└── processor.py
+```
 
-### 1. config 생성하기
+## 1. config 생성하기
 서버 실행을 위해 필요한 환경변수를 정의합니다
 ``` python
 import os
@@ -26,7 +39,7 @@ CSV_PATH = Path(__file__).resolve().parent
 CSV_FILE_EXT = '.csv'
 ```
 
-### 2. 도서 정보 csv로 저장하기
+## 2. 도서 정보 csv로 저장하기
 **[GET] /search**
 > query parameter로 전달한 출판사의 도서목록을 저장한 csv 파일을 data/search/ 에 생성한다
 ``` commandline
@@ -39,15 +52,41 @@ CSV_FILE_EXT = '.csv'
 {
   "status": "fail",
   "warning": "Pass publisher string as a query parameter.",
-  "publisher_list": [ ]
+  "publisher_list": [
+    "위즈덤하우스",
+    "미디어그룹",
+    "시공사",
+    "문학동네",
+    "북이십일",
+    "김영사",
+    "창비",
+    "웅진싱크빅",
+    "도서출판길벗",
+    "민음사",
+    "알에이치코리아",
+    "다산북스",
+    "학지사",
+    "마더텅",
+    "아가페출판사",
+    "비룡소",
+    "한빛미디어",
+    "넥서스",
+    "박영사",
+    "쌤앤파커스",
+    "영진닷컴",
+    "가나문화콘텐츠",
+    "계림북스",
+    "을유문화사",
+    "자음과모음",
+    "개암나무"
+   ]
 }
 ```
 ``` json
 { "status": "fail", "warning": "가나문화콘텐츠.csv already exists."}
 ```
  
-
-### 3. 도서 세부 정보(category, detail) 데이터베이스에 저장하기
+## 3. 도서 세부 정보(category, detail) 데이터베이스에 저장하기
 **[GET] /save**
 > query parameter로 전달한 출판사의 도서목록을 저장한 csv 파일을 읽어
 > 세부 정보를 담은 새로운 csv 파일을 data/save/에 생성하고 데이터베이스에 저장한다.
@@ -61,7 +100,34 @@ CSV_FILE_EXT = '.csv'
 {
   "status": "fail",
   "warning": "Pass publisher string as a query parameter.",
-  "publisher_list": [ ]
+  "publisher_list": [
+    "위즈덤하우스",
+    "미디어그룹",
+    "시공사",
+    "문학동네",
+    "북이십일",
+    "김영사",
+    "창비",
+    "웅진싱크빅",
+    "도서출판길벗",
+    "민음사",
+    "알에이치코리아",
+    "다산북스",
+    "학지사",
+    "마더텅",
+    "아가페출판사",
+    "비룡소",
+    "한빛미디어",
+    "넥서스",
+    "박영사",
+    "쌤앤파커스",
+    "영진닷컴",
+    "가나문화콘텐츠",
+    "계림북스",
+    "을유문화사",
+    "자음과모음",
+    "개암나무"
+   ]
 }
 ```
 
