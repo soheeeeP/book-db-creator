@@ -157,8 +157,10 @@ def crawl_book_detail_info(file_path, temp_path):
     print('Start crawling detail information ... ')
     start, stop, step = df.index.start, df.index.stop, df.index.step
     total_df = []
-    for i in range(start, stop, 100):
-        links = [(i, stop, df.loc[i]) for i in range(i, i + 100, step)]
+
+    loop_size = min(100, df.shape[0])
+    for i in range(start, stop, loop_size):
+        links = [(i, stop, df.loc[i]) for i in range(i, i + loop_size, step)]
         with ThreadPoolExecutor(max_workers=12) as executor:
             results = executor.map(get_book_info_using_request, links)
 
@@ -168,7 +170,7 @@ def crawl_book_detail_info(file_path, temp_path):
             writer = csv.writer(f_obj)
             writer.writerows(df_list)
             f_obj.close()
-        print('Crawling [ {} ~ {} ] Finished.'.format(i, i + 100))
+        print('Crawling [ {} ~ {} ] Finished.'.format(i, i + loop_size))
 
     return total_df
 
