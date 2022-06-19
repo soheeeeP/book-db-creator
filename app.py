@@ -9,13 +9,14 @@ import pandas as pd
 
 from book_util import *
 
+from pathlib import Path
+
 
 app = Flask(__name__)
 
 
 @app.route('/', methods=['GET'])
 def main():
-    # TODO: tutorial readme
     return make_response()
 
 
@@ -110,4 +111,11 @@ def save_all_book():
 
 
 if __name__ == '__main__':
+    base_dir = Path(__file__).resolve().parent
+    data_dir = os.path.join(base_dir, 'data')
+
+    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(os.path.join(data_dir, 'save'), exist_ok=True)
+    os.makedirs(os.path.join(data_dir, 'search'), exist_ok=True)
+
     app.run()
