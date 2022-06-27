@@ -79,22 +79,31 @@ class BookPredictionProcessor:
         도서 데이터에 대한 벡터화를 수행하는 경우, columns에 ['description', 'pub_review', 'detail']를 전달한다.
         도서 카테고리에 대한 벡터화를 수행하는 경우, columns에 ['category_d1', 'category_d2', 'category_d3']를 전달한다.
         """
+
+        title_list = []
         tfidf_vectorizer = self.tfidvectorizer(max_dfv=max_dfv, max_featuresv=max_featuresv, min_dfv=min_dfv)
         corpus = []
         for record in data:
             docs = ''
             for c in columns:
-                if c in record and record[c] and record[c] != '':
+                if c != 'title' and c in record and record[c] and record[c] != '':
                     docs += " " + str(record[c])
+                title_list.append(record['title'])
                 corpus.append(' '.join(self.okt.nouns(docs)))
 
         tfidf_matrix = tfidf_vectorizer.fit_transform(corpus)
-        tfidf_vocs = tfidf_vectorizer.vocabulary_
         tfidf_arr = tfidf_matrix.toarray()
-
-        count = tfidf_arr.sum(axis=0)
-        idx = np.argsort(-count)        # 내림차순 정렬 index
         feature_name = np.array(tfidf_vectorizer.get_feature_names_out())
-        words = list(zip(feature_name[idx], count[idx]))
 
-        return tfidf_vocs, tfidf_arr, tfidf_matrix, words
+        label_dataset = []
+        for i in range(tfidf_arr.shape[0]):
+            idx_order = np.argsort(-tfidf_arr[i])
+            features = []
+            for idx in idx_order:
+                features.append((feature_name[idx], tfidf_arr[i][idx]))
+            label_dataset.append({
+                'title': title_list[i],
+                'features': features
+            })
+
+        return tfidf_vectorizer, tfidf_matrix, label_dataset
